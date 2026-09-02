@@ -1,0 +1,73 @@
+# CustomerService 容量告警（对齐 README 告警建议）
+# 加载：prometheus.yml 的 rule_files 指向本文件
+# 阈值可按环境调整；不做成应用配置。
+
+groups:
+  - name: cs.recording
+    rules:
+      # 查单成功率：ok / (ok+not_found+deny+timeout+error)；busy 不进分母
+      - record: cs:order_query:success_ratio
+        expr: |
+          sum(rate(cs_tool_calls_total{tool="order_query",outcome="ok"}[5m]))
+          /
+          clamp_min(sum(rate(cs_tool_calls_total{tool="order_query",outcome=~"ok|not_found|deny|timeout|error"}[5m])), 1e-9)
+
+  - name: cs.alerts
+    rules:
+      # 成功率骤降；阈值 0.8；需有最低流量以免空窗误报
+      - alert: CsOrderQuerySuccessRatioLow
+        expr: |
+          cs:order_query:success_ratio < 0.8
+          and sum(rate(cs_tool_calls_total{tool="order_query"}[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "查单成功率低于 80%（持续 10m）"
+          description: >-
+            cs:order_query:success_ratio={{ $value | humanizePercentage }}。
+            公式 ok/(ok+not_found+deny+timeout+error)；busy 不计入分母。
+
+      # timeout 突增；超时占比 > 10%
+      - alert: CsOrderQueryTimeoutSpike
+        expr: |
+          sum(rate(cs_tool_calls_total{tool="order_query",outcome="timeout"}[5m]))
+          /
+          clamp_min(sum(rate(cs_tool_calls_total{tool="order_query"}[5m])), 1e-9) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "查单 timeout 占比超过 10%（持续 5m）"
+          description: "order_query outcome=timeout 相对总调用的 rate 占比过高。"
+
+      # Agent 跑飞持续非零（high_llm_calls / react_limit）
+      - alert: CsAgentRunawaySustained
+        expr: sum(increase(cs_agent_runaway_total[10m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "cs_agent_runaway_total 在 10m 窗口持续有增量"
+          description: "Agent 跑飞（LLM 次数超阈值或 ReACT 撞限）；不要用加大 CHAT_CONCURRENCY 修。"
+
+      # ReACT 撞 run_limit 持续非零
+      - alert: CsReactLimitHitSustained
+        expr: increase(cs_react_limit_hit_total[10m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "cs_react_limit_hit_total 在 10m 窗口持续有增量"
+          description: "ReACT 工具调用撞 run_limit；检查工具循环与 run_limit 配置。"
+
+      # 每轮 LLM 次数 p95 与 AGENT_RUNAWAY_LLM_CALLS 默认值 8 对齐
+      - alert: CsLlmCallsPerTurnP95High
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(cs_llm_calls_per_turn_bucket[15m]))) >= 8
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "每轮 LLM 调用次数 p95 ≥ 8（持续 15m）"
+          description: "与 AGENT_RUNAWAY_LLM_CALLS 默认阈值对齐；偏高可能伴随 runaway。"

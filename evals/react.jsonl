@@ -1,0 +1,4 @@
+{"id": "mixed-offline", "query": "订单20251114001买的入门课包含哪些内容？", "tenant_id": "demo", "user_id": "u10001", "expect_intent": "mixed", "expect_answer_contains_any": ["退款", "开通", "支付", "订单"], "expect_course_tokens": ["模块", "Python"]}
+{"id": "mixed-serial-offline", "query": "订单#20251114001 这门课讲什么，退款进度呢", "tenant_id": "demo", "user_id": "u10001", "expect_intent": "mixed", "expect_answer_contains_any": ["退款", "开通", "支付", "订单"], "expect_course_tokens": ["模块", "Python"]}
+{"id": "mixed-order-course-keywords", "query": "订单20251114001买的入门课包含哪些内容？", "expect_tools_any": ["tool_order_query", "retrieve_course_knowledge"]}
+{"id": "missing-order-no-tool", "query": "帮我查一下进度", "expect_tool_message_contains": "未识别到订单号"}

@@ -1,0 +1,22 @@
+name: ragas-nightly
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+jobs:
+  ragas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install -e ".[dev,eval]"
+      - name: RAGAS faithfulness eval
+        env:
+          RUN_LLM_EVAL: "1"
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: pytest -q -m llm tests/test_eval_ragas.py

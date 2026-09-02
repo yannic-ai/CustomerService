@@ -1,0 +1,13 @@
+# 最小 Alertmanager 样例：默认 receiver 不接真实 pager，仅便于联调。
+# 生产请换成 webhook / email / PagerDuty 等。
+
+route:
+  receiver: noop
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: noop
+    # 空 receiver：告警进入 Alertmanager 但不外发

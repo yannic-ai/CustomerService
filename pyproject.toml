@@ -1,0 +1,94 @@
+[project]
+name = "customerservice"
+version = "0.1.0"
+description = "智能客服系统"
+requires-python = ">=3.11"
+dependencies = [
+    "langchain>=1.0.0,<2.0.0",
+    "langchain-core>=1.0.0,<2.0.0",
+    "langchain-community>=0.4.0",
+    "langchain-deepseek>=1.0.0",
+    "langchain-text-splitters>=1.0.0",
+    "langgraph>=1.0.0",
+    "faiss-cpu==1.8.0",
+    "numpy>=1.26.0,<2",
+    "fastapi>=0.115.0",
+    "python-multipart>=0.0.9",
+    "uvicorn[standard]>=0.32.0",
+    "sqlalchemy>=2.0.36",
+    "pymysql>=1.1.1",
+    "cryptography==44.0.3",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "oss2>=2.19.0",
+    "httpx>=0.28.0",
+    "tiktoken>=0.8.0",
+    "redis>=5.0.0",
+    "langfuse>=3.0.0",
+    "opentelemetry-api>=1.27.0",
+    "opentelemetry-sdk>=1.27.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.27.0",
+    "opentelemetry-instrumentation-fastapi>=0.48b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.48b0",
+    "opentelemetry-instrumentation-redis>=0.48b0",
+    "opentelemetry-instrumentation-httpx>=0.48b0",
+    "langchain-huggingface>=1.0.0",
+    "sentence-transformers>=3.0.0,<6",
+    "transformers>=4.44.0,<5",
+    "jieba>=0.42.1",
+    "rank-bm25>=0.2.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.9.0",
+    "mypy>=1.14.0",
+]
+eval = [
+    "ragas>=0.2.0",
+    "datasets>=2.14.0",
+]
+
+[project.scripts]
+cs = "app.cli:main"
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+markers = [
+    "llm: 需要 DEEPSEEK_API_KEY，且 RUN_LLM_EVAL=1 才执行（nightly）",
+]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["app/config"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+# 第一阶段只拦会直接导致运行失败的问题，避免一次性风格债阻塞 CI
+select = ["E9", "F63", "F7", "F82"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/static/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

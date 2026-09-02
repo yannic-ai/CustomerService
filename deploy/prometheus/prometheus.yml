@@ -1,0 +1,25 @@
+# 样例：用现有 Prometheus 刮本服务 /metrics 并加载告警规则。
+# 改 scrape targets 为实际 host:port；本仓库不提供 Grafana。
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            # 指向本机或集群内 Alertmanager；本地可先注释掉
+            - localhost:9093
+
+rule_files:
+  - rules/cs.yml
+
+scrape_configs:
+  - job_name: customer-service
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - host.docker.internal:8000
+        labels:
+          service: customer-service
