@@ -193,3 +193,5 @@ RAGAS nightly：`pip install -e ".[dev,eval]"` 后执行 `RUN_LLM_EVAL=1 .venv/b
 | 大模型 | DeepSeek API | `langchain-deepseek` / `deepseek-chat` |
 | 数据存储 | MySQL 8.0+ / SQLite + OSS | 订单与报告归档 |
 | 安全中间件 | Callback + AgentMiddleware | 适配 LangChain v1.0 |
+
+
