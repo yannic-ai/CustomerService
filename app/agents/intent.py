@@ -18,7 +18,9 @@ from app.context import SessionSlots, apply_session_slots, format_history_for_pr
 from app.observability.langfuse import PROMPT_INTENT, get_text_prompt
 from app.schemas import Intent, RouteDecision, intent_to_target
 
-HANDOFF_HINTS = ("转人工", "人工客服", "找人工", "人工服务", "联系人工")
+HANDOFF_HINTS = ("转人工", "人工客服", "找人工", "人工服务", "联系人工", "人工")
+# 「人工智能」含「人工」，不能当成转接意图
+HANDOFF_FALSE_POSITIVES = ("人工智能",)
 COURSE_HINTS = (
     "课程",
     "大纲",
@@ -46,7 +48,7 @@ INTENT_SYSTEM_PROMPT = (
     "order=订单、退款、支付进度；"
     "mixed=同时涉及课程和订单；"
     "ambiguous=信息不足、缺订单号、过短追问或问候混业务词，需要澄清；"
-    "handoff=转人工/人工客服；"
+    "handoff=转人工/人工/人工客服；"
     "chitchat=闲聊或其他。"
     "主要依据【当前用户问题】分类；对话历史仅用于理解指代与补全订单号。"
     "若出现订单号请提取到 order_no。"
@@ -63,6 +65,13 @@ CONFIDENCE_CHITCHAT = 0.8
 CONFIDENCE_UNSET_COURSE = 0.5
 
 GENERIC_CLARIFY = "您想咨询课程内容，还是查询订单进度？请补充一下具体问题。"
+
+
+def _has_handoff_hint(text: str) -> bool:
+    masked = text
+    for token in HANDOFF_FALSE_POSITIVES:
+        masked = masked.replace(token, "")
+    return any(token in masked for token in HANDOFF_HINTS)
 
 
 def _has_course(text: str) -> bool:
@@ -123,7 +132,7 @@ def _decision(
 def _recognize_by_keyword(text: str) -> RouteDecision:
     """无大模型时的关键词意图识别，同时尝试提取订单号。"""
     query = (text or "").strip()
-    if any(token in query for token in HANDOFF_HINTS):
+    if _has_handoff_hint(query):
         return _decision(intent="handoff", reason="keyword-intent", confidence=CONFIDENCE_HANDOFF)
 
     order_no = _extract_order_no(query)

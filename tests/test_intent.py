@@ -45,6 +45,32 @@ def test_keyword_handoff() -> None:
     assert decision.reason == "keyword-intent"
 
 
+def test_keyword_handoff_bare_人工() -> None:
+    """用户常只输入「人工」，不得当短问句澄清。"""
+    decision = _recognize("人工")
+    assert decision.intent == "handoff"
+    assert decision.target == "handoff"
+    assert decision.reason == "keyword-intent"
+
+
+def test_keyword_handoff_bare_人工_with_course_slot() -> None:
+    """上一轮课程咨询后输入「人工」，仍直达转接，不被槽位承接。"""
+    slots = SessionSlots(
+        last_intent="course_consult",
+        last_course_name="Python入门课",
+        last_course_query="Python入门课包含哪些内容？",
+    )
+    decision = _recognize("人工", slots=slots)
+    assert decision.intent == "handoff"
+    assert decision.target == "handoff"
+
+
+def test_keyword_handoff_does_not_match_人工智能() -> None:
+    decision = _recognize("人工智能课讲什么")
+    assert decision.intent == "course_consult"
+    assert decision.target == "rag"
+
+
 def test_keyword_handoff_priority_over_order() -> None:
     decision = _recognize("转人工查一下订单退款")
     assert decision.intent == "handoff"
