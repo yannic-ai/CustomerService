@@ -1,6 +1,6 @@
 # 智能客服系统
 
-课程咨询走 RAG，订单查询走订单 API。请求先经过安全中间件，再由 Router 按 `RoutingPolicy` 分流：明确意图直达；低置信、订单信号误入 RAG、以及 `mixed` / `ambiguous` 交给 Supervisor。
+面向课程教育的智能客服系统。
 
 未配置 `DEEPSEEK_API_KEY` 时仍可本地演示（关键词路由 + 检索模板 + 查库）。Key 已配但上游持续失败时，网关熔断后降到同一套离线能力。
 
