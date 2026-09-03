@@ -1,6 +1,6 @@
 # 智能客服系统
 
-面向课程教育的智能客服系统，支持课程查询、订单查询、人工、闲聊、退款等功能。
+面向课程教育的智能客服系统，支持课程查询、订单查询、人工、闲聊等功能，后续继续扩展支持退款等功能。
 
 未配置 `DEEPSEEK_API_KEY` 时仍可本地演示（关键词路由 + 检索模板 + 查库）。Key 已配但上游持续失败时，网关熔断后降到同一套离线能力。
 
@@ -193,5 +193,3 @@ RAGAS nightly：`pip install -e ".[dev,eval]"` 后执行 `RUN_LLM_EVAL=1 .venv/b
 | 大模型 | DeepSeek API | `langchain-deepseek` / `deepseek-chat` |
 | 数据存储 | MySQL 8.0+ / SQLite + OSS | 订单与报告归档 |
 | 安全中间件 | Callback + AgentMiddleware | 适配 LangChain v1.0 |
-
-
