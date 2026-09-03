@@ -38,7 +38,7 @@ flowchart TD
 | 缺单号澄清 | 查一下我的订单 / 退款进度怎么样 | Supervisor `ask_user` 要完整单号，不调工具 |
 | 跨轮追问 | （已查过单）那退款呢 | 槽位回填 `last_order_no`，不必重说单号 |
 | 绑不上兜底 | 那个怎么样了 | Supervisor 走 ReACT |
-| 转人工 | 转人工 / 我要找人工客服 | 直达 handoff |
+| 转人工 | 人工 / 转人工 / 我要找人工客服 | 直达 handoff |
 | 闲聊 | 你好 / 今天天气怎么样 | 直达 chitchat |
 
 ## 快速开始

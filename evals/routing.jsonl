@@ -11,7 +11,9 @@
 {"id": "order-logistics-missing-no", "query": "查一下物流进度", "expect_intent": "ambiguous", "expect_target": "supervisor", "expect_order_no": null}
 {"id": "order-bare-no", "query": "20251114001 退款到哪了", "expect_intent": "order", "expect_target": "tool", "expect_order_no": "20251114001"}
 {"id": "handoff", "query": "转人工", "expect_intent": "handoff", "expect_target": "handoff"}
+{"id": "handoff-bare", "query": "人工", "expect_intent": "handoff", "expect_target": "handoff"}
 {"id": "handoff-agent", "query": "我要找人工客服", "expect_intent": "handoff", "expect_target": "handoff"}
+{"id": "course-ai-not-handoff", "query": "人工智能课讲什么", "expect_intent": "course_consult", "expect_target": "rag"}
 {"id": "handoff-over-order", "query": "转人工查一下订单退款", "expect_intent": "handoff", "expect_target": "handoff"}
 {"id": "mixed-order-course", "query": "订单20251114001买的入门课包含哪些内容？", "expect_intent": "mixed", "expect_target": "supervisor", "expect_order_no": "20251114001"}
 {"id": "followup-refund", "query": "那退款呢", "slots": {"last_intent": "order", "last_order_no": "20251114001"}, "expect_intent": "order", "expect_target": "tool", "expect_order_no": "20251114001"}
