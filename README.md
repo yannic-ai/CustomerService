@@ -95,69 +95,26 @@ python main.py serve
 
 ## 配置
 
-复制 `.env.example` 为 `.env`。数值与枚举字段在启动时由 Pydantic 校验（见 `app/config/` / `tests/test_config.py`）；非法值会直接拒绝启动，例如端口超范围、`CONTEXT_DISCARD_SCORE` 大于 `CONTEXT_SUMMARIZE_SCORE`。配置按主题拆在 `llm.py` / `rag.py` / `capacity.py` / `memory.py` 等 mixin，交叉校验仍在 `Settings`。
+复制 `.env.example` 为 `.env`。未列出的项有默认值，完整清单见 `.env.example`。
 
-- `DEEPSEEK_API_KEY`：DeepSeek 密钥
-- `LOG_LEVEL`：日志级别，默认 `INFO`
-- `LOG_FORMAT`：`json`（默认，生产）或 `text`（本地可读）
-- `DATABASE_URL`：默认 SQLite；生产示例 `mysql+pymysql://user:pass@127.0.0.1:3306/customer_service?charset=utf8mb4`
-- `DEFAULT_TENANT`：缺省租户，默认 `demo`（HTTP 未传 `X-Tenant-Id` 时使用）
-- `HISTORY_TOKEN_BUDGET`：会话历史 token 预算，默认 `8000`（按模型 tokenizer 估算，失败回退 cl100k；至少保留 `HISTORY_MIN_MESSAGES` 条，默认 `10`，与压缩层 `CONTEXT_ALWAYS_KEEP_RECENT` 对齐）
-- `CONTEXT_SUMMARY_USE_LLM`：溢出摘要是否默认走 LLM（默认 `true`）；失败或纯闲聊回退规则抽取
-- `HISTORY_TOKENIZER_NAME` / `HISTORY_TOKEN_ESTIMATE_RATIO`：可选手动指定 tiktoken 编码名，以及对估算结果的乘数校准
-- `USER_MEMORY_ENABLED`：是否写入用户长期记忆（LangGraph Store）。`user_id` 为 `anonymous` 时不落盘
-- `USER_MEMORY_TTL_MINUTES`：长期记忆 TTL（分钟），默认 30 天；Redis Store 按秒写入 EXPIRE
-- OSS 四项配齐后，退款报告上传阿里云；否则写入 `data/oss/`
-- `EMBEDDING_BACKEND`：默认 `huggingface`（`BAAI/bge-small-zh-v1.5`，512 维）。离线可改 `ngram`。换模型或 `EMBEDDING_DIM` 后必须 `python main.py ingest` 重建索引，否则拒绝加载
-- `RAG_HYBRID_ENABLED`：默认开启向量 + jieba BM25 + RRF；课名、模块名、NumPy、过拟合等专名走词法。`RAG_MIN_SCORE` 只卡向量分，BM25 命中仍保留
-- `RAG_NEIGHBOR_CHUNKS`：命中后补同节与前后各 N 个切片（默认 1），不把整份源文件倒进上下文
-- `RAG_CONTEXT_TOKEN_BUDGET`：扩展后检索上下文 token 预算（默认 4096）；按「原片 > 同节 > 邻片」整片裁剪，至少保留 top-1 命中片；0 关闭
-- `RAG_RERANK_ENABLED`：CrossEncoder 精排（默认 `false`）；开启后对融合候选二次排序，失败降级
-- `RAG_RERANK_MODEL` / `RAG_RERANK_FETCH_K` / `RAG_RERANK_TOP_K` / `RAG_RERANK_TIMEOUT_SECONDS`：精排模型与候选规模
-- `RAG_DYNAMIC_K_ENABLED`：按 query 复杂度动态调整 `fetch_k`（默认 `true`）
-- `RAG_FETCH_K_MIN` / `RAG_FETCH_K_MAX`：动态 fetch 上下限（默认 12 / 32）
-- `RAG_REWRITE_ENABLED`：条件式 query rewrite（默认 `true`）；`expand_query` → 规则改写 → 课程别名补全
-- `RAG_EVAL_HARVEST_ENABLED`：空召回 / 低分拒答 / 用户踩 写入 `evals/pending/`（默认 `true`）
-- `RAG_EVAL_HARVEST_DIR` / `RAG_EVAL_SNAPSHOT_TTL_SECONDS`：pending 目录与赞踩关联快照 TTL
-- 知识库 ingest 采用 **parent-child 分块**（子块检索、父块生成）；升级分块逻辑后需 `python main.py ingest --rebuild`
-- `CHAT_CONCURRENCY`：集群同时跑对话图的上限（有 Redis 时跨 worker 共享），默认 `8`，打满返回 HTTP 429
-- `CHAT_TENANT_CONCURRENCY`：单个租户同时占用的对话槽上限，默认 `4`（不超过 `CHAT_CONCURRENCY`），防止吵闹租户占满全集群
-- `CHAT_SLOT_TTL_SECONDS`：并发槽租约 TTL，默认 `180` 秒；进程崩溃后过期回收
-- `GRAPH_WORKERS`：把对话图从事件循环卸到独立线程池的大小，默认 `8`（SSE 与 JSON 兼容路径都走这里）；`0` 表示在当前线程直调
-- `ORDER_TOOL_WORKERS`：订单查询独立线程池，默认 `4`；`0` 表示在当前线程直调（课程检索已 async 化，不再单独占池）
-- `UVICORN_WORKERS`：HTTP 进程数，默认 `1`。大于 1 时 `/metrics` 自动走共享目录聚合（默认 `data/prometheus_multiproc`），刮任意 worker 都能看到全进程合计；也可用 `PROMETHEUS_MULTIPROC_DIR` / `prometheus_multiproc_dir` 显式指定目录。直接 `uvicorn --workers` 而不改 `UVICORN_WORKERS` 时请自行设置该目录。
-- `REDIS_URL`：短期会话、长期档案、LLM 配额与对话并发槽。留空且 `UVICORN_WORKERS=1` 时用进程内存（会告警）；多 worker 必须配置。只要填了，启动时 ping 失败就退出，不会静默回退内存
-- `DB_POOL_SIZE` / `DB_MAX_OVERFLOW`：仅 MySQL 连接池；SQLite 忽略
-- `LLM_TIMEOUT_SECONDS` / `LLM_MAX_RETRIES`：LLM Gateway 超时与瞬态重试
-- `LLM_CIRCUIT_FAILURE_THRESHOLD` / `LLM_CIRCUIT_COOLDOWN_SECONDS`：连续失败熔断（默认 3 次打开，冷却 30 秒内 fail-fast）；打开后课程走检索模板、ReACT 走离线拼接，`respond` 在仍无答案时回退固定话术。`0` 关闭熔断
-- `LLM_DAILY_TOKEN_LIMIT`：按租户每日总 token（prompt+completion）限额，默认 `500000`；`0` 表示不限额
-- `ORDER_TOOL_TIMEOUT_SECONDS`：订单工具线程池超时（秒，默认 `10`）；超时记 `/metrics` 的 `cs_tool_calls_total{tool=order_query,outcome=timeout}`；`0` 不限制
-- `TOOL_CACHE_ENABLED` / `TOOL_CACHE_ORDER_TTL_SECONDS` / `TOOL_CACHE_COURSE_TTL_SECONDS`：工具成功结果的会话 structured + Redis TTL 双层缓存（瞬态失败回退）；订单默认 10min、课程默认 30min
-- `TOOL_ESCALATION_ENABLED` / `TOOL_ESCALATION_TRANSIENT_THRESHOLD` / `TOOL_ESCALATION_ON_REACT_LIMIT`：瞬态失败耗尽或 ReACT 撞限时自动转人工（默认阈值 2、撞限开启）
-- `AGENT_RUNAWAY_LLM_CALLS`：单轮 LLM 次数超过该值记 `cs_agent_runaway_total{reason=high_llm_calls}`（默认 `8`）；ReACT 撞 `run_limit` 另记 `reason=react_limit`
-- `LLM_PROMPT_PRICE_PER_MTOK_YUAN` / `LLM_COMPLETION_PRICE_PER_MTOK_YUAN`：百万 token 单价（元），默认 `1.0` / `2.0`，用于 `/metrics` 的 `cs_llm_cost_yuan_total`
-- `LLM_CACHE_ENABLED` / `LLM_CACHE_TTL_SECONDS` / `LLM_CACHE_MAX_CHARS`：意图与 RAG 的短响应缓存；默认不缓存 ReACT
-- 配额、短缓存与对话并发槽优先写 Redis（`REDIS_URL`）；未配置时降级为单进程近似并打告警
-- `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST`：自建 Langfuse 轨迹（两把钥匙都配齐才上报）。容量告警仍看 `/metrics`，轨迹与 prompt 看 Langfuse UI
-- `OTEL_ENABLED`（默认 `true`）：在已配 Langfuse 或显式 `OTEL_EXPORTER_OTLP_ENDPOINT` 时启用 OpenTelemetry；自动埋点 FastAPI / SQLAlchemy / Redis / httpx；LangGraph 节点与 FAISS 检索打子 span；JSON 日志带 `trace_id` / `span_id`；接受并回写 W3C `traceparent`
-- `OTEL_SERVICE_NAME` / `OTEL_ENVIRONMENT`：资源属性；OTLP 默认 `{LANGFUSE_HOST}/api/public/otel/v1/traces`（Basic 认证 + `x-langfuse-ingestion-version: 4`）
-- `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_HEADERS`：可选覆盖导出地址与额外头（`key=value,key2=value2`）
+| 变量 | 说明 |
+| --- | --- |
+| `DEEPSEEK_API_KEY` | DeepSeek 密钥；不配则走离线路由与检索模板 |
+| `DATABASE_URL` | 默认 SQLite；生产用 `mysql+pymysql://cs:cs@127.0.0.1:3306/customer_service?charset=utf8mb4` |
+| `REDIS_URL` | 会话、档案、配额与并发槽。单进程演示可留空；多 worker / 生产必须配置。填了但 ping 失败会拒绝启动 |
+| OSS 四项 | `OSS_ACCESS_KEY_ID` / `SECRET` / `BUCKET` / `ENDPOINT` 配齐后上传阿里云，否则写 `data/oss/` |
+| `EMBEDDING_BACKEND` | 默认 `huggingface`（`BAAI/bge-small-zh-v1.5`）。离线可改 `ngram`。换模型或维度后必须 `python main.py ingest` |
 
-MySQL 8 与 Redis 用 `docker compose up -d` 启动（账号 `cs` / `cs`，库名 `customer_service`，Redis `6379`）。不配则默认 SQLite + 单进程内存会话。
+MySQL 8 与 Redis：`docker compose up -d`（账号 `cs` / `cs`，库名 `customer_service`）。
 
-### Langfuse（可选，独立 compose）
-
-与应用的 MySQL/Redis **分开**，避免抢 `6379`：
+### Langfuse（可选）
 
 ```bash
 cp langfuse.env.example langfuse.env
-# 按注释改 CHANGEME 密钥后：
 docker compose -f docker-compose.langfuse.yml -p cs-langfuse --env-file langfuse.env up -d
-# UI http://127.0.0.1:3000 ；示例 INIT 密钥见 langfuse.env
-# 写入应用 .env：LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY / LANGFUSE_HOST
 ```
 
-`/ready` **不**探活 Langfuse；未配置密钥时服务照常运行。
+UI [http://127.0.0.1:3000](http://127.0.0.1:3000)。把 `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` 写入应用 `.env`。未配置时服务照常运行。
 
 ## 多租户
 
@@ -195,10 +152,6 @@ app/
   context/      会话窗口、滚动摘要、跨轮槽位
   app.py        FastAPI 入口（POST /chat SSE）
 data/knowledge/ 课程大纲 Markdown（根目录=demo，子目录=租户）
-data/工具层.md   工具失败降级：缓存回退 + 自动转人工（设计说明）
-data/编排层.md   图编排与 Supervisor 能力编排
-data/记忆管理.md 会话窗口、槽位、摘要、用户档案
-data/可观测.md   Prometheus / Langfuse / OTel 指标说明
 evals/          路由 / RAG / 忠实度 / 订单 / ReACT / 安全黄金评测集（JSONL）
 docker-compose.yml           本地 MySQL 8 + Redis
 docker-compose.langfuse.yml  自建 Langfuse（项目名 cs-langfuse，仅暴露 3000）
